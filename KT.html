@@ -2,6 +2,7 @@
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Du lịch Việt</title>
     <style>
       body {
@@ -34,6 +35,12 @@
         border-radius: 5px;
         cursor: pointer;
       }
+      .valid {
+        color: green;
+      }
+      .invalid {
+        color: rgb(191, 6, 6);
+      }
 
       .button:hover {
         background-color: #0069d9;
@@ -65,6 +72,19 @@
         object-fit: cover;
       }
 
+      #tour-form {
+        margin-top: 50px;
+      }
+
+      #error {
+        /* margin: 15px 0 10px; */
+        color: rgb(191, 6, 6);
+        position: absolute;
+        left: 50%;
+        -ms-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+      }
+
       .modal {
         display: none;
         position: fixed;
@@ -85,9 +105,10 @@
         width: 70%;
         align-items: center;
         justify-content: center;
+        position: relative;
       }
       .modal-header {
-        margin: 10px 420px 30px;
+        text-align: center;
       }
 
       .close {
@@ -132,7 +153,7 @@
     <div class="container">
       <div class="buttons">
         <div class="button" id="login">Đăng nhập</div>
-        <div class="button" id="new-tour">Mở tour mới</div>
+        <div class="button" id="open-button">Mở tour mới</div>
       </div>
       <h1>DANH SÁCH TOUR - DU LỊCH VIỆT</h1>
       <table id="tour-list">
@@ -153,17 +174,17 @@
       <!-- Đây là modal window cho mở tour mới -->
       <div id="modal" class="modal">
         <div class="modal-content">
-          <span class="close">×</span>
+          <span class="close" id="close-button">×</span>
           <h2 class="modal-header">THÔNG TIN TOUR</h2>
+          <div id="error"></div>
           <form id="tour-form">
             <div class="form-group">
               <label for="code">Mã tour:</label>
               <input
-                placeholder="Nhập mã tour (HCM-HUE-08-2023)"
+                placeholder="HCM-HUE-12-2020"
                 type="text"
                 id="code"
                 name="code"
-                pattern="[A-Za-z]{3}-[A-Za-z]{3}-(0[1-9]|1[0-2])-[0-9]{4}"
                 required
               />
             </div>
@@ -184,7 +205,7 @@
             <div class="form-group">
               <label for="duration">Thời gian:</label>
               <input
-                placeholder="Nhập thời gian đi (4 ngày 3 đêm)"
+                placeholder="2 ngày 1 đêm"
                 type="text"
                 id="duration"
                 name="duration"
@@ -194,11 +215,11 @@
             <div class="form-group">
               <label for="price">Giá tour:</label>
               <input
-                placeholder="Số >0"
-                type="number"
+                placeholder="200000"
+                type="text"
                 id="price"
                 name="price"
-                min="1"
+                pattern="[1-9][0-9]*"
                 required
               />
             </div>
@@ -213,7 +234,8 @@
               />
             </div>
             <div class="form-group">
-              <input type="submit" value="Lưu" />
+              <button type="submit">Thêm tour</button>
+              <div id="success-message" style="color: green"></div>
             </div>
           </form>
         </div>
@@ -222,79 +244,62 @@
 
     <script>
       // Lấy các phần tử cần thiết từ HTML
-      var modal = document.getElementById("modal");
-      var newTourButton = document.getElementById("new-tour");
-      var closeButton = document.getElementsByClassName("close")[0];
-      var tourForm = document.getElementById("tour-form");
-      var tourList = document.getElementById("tour-list");
+      let tourForm = document.getElementById("tour-form");
+      let tourList = document.getElementById("tour-list");
+      let openButton = document.getElementById("open-button");
+      let modal = document.getElementById("modal");
+      let closeButton = document.getElementById("close-button");
+      let error = document.getElementById("error");
+      let successMessage = document.getElementById("success-message");
 
-      // Định nghĩa một biến để lưu số thứ tự của tour
-      var stt = 0;
+      // Khai báo biến stt để lưu trữ số thứ tự của tour
+      let stt = 0;
 
-      // Hàm để tạo một hàng mới cho bảng danh sách tour
-      function createRow(tour) {
-        // Tạo một phần tử tr
-        var row = document.createElement("tr");
-        // Tạo các phần tử td cho từng cột
-        var sttCell = document.createElement("td");
-        var codeCell = document.createElement("td");
-        var routeCell = document.createElement("td");
-        var dateCell = document.createElement("td");
-        var durationCell = document.createElement("td");
-        var priceCell = document.createElement("td");
-        var imageCell = document.createElement("td");
-        // Tạo một phần tử img cho ảnh đại diện
-        var image = document.createElement("img");
-        // Gán giá trị cho các phần tử td từ đối tượng tour
-        sttCell.textContent = tour.stt;
-        codeCell.textContent = tour.code;
-        routeCell.textContent = tour.route;
-        dateCell.textContent = tour.date;
-        durationCell.textContent = tour.duration;
-        priceCell.textContent = tour.price;
-        // Đọc file ảnh từ đối tượng tour và gán cho src của img
-        var reader = new FileReader();
-        reader.onload = function (e) {
-          image.src = e.target.result;
-        };
-        reader.readAsDataURL(tour.image);
-        // Thêm phần tử img vào phần tử td cho ảnh đại diện
-        imageCell.appendChild(image);
-        // Thêm các phần tử td vào phần tử tr
-        row.appendChild(sttCell);
-        row.appendChild(codeCell);
-        row.appendChild(routeCell);
-        row.appendChild(dateCell);
-        row.appendChild(durationCell);
-        row.appendChild(priceCell);
-        row.appendChild(imageCell);
-        // Trả về phần tử tr
-        return row;
+      // Hàm để kiểm tra mã tour có hợp lệ không
+      function checkCode(code) {
+        // Tạo một biểu thức chính quy để kiểm tra mã tour
+        // Mã tour phải có dạng ABC-DEF-12-2020
+        let regex = /^[A-Z]{3}-[A-Z]{3}-(0?[1-9]|[1][0-2])-[0-9]{4}$/i;
+
+        // Kiểm tra mã tour có khớp với biểu thức chính quy không
+        let match = code.match(regex);
+        // Nếu có khớp, trả về true
+        if (match) {
+          return true;
+        } else {
+          // Nếu không khớp, trả về false
+          return false;
+        }
       }
 
-      // Hàm để xử lý sự kiện khi nhấn nút mở tour mới
-      function openModal() {
-        // Hiển thị modal window
-        modal.style.display = "block";
+      // Hàm để kiểm tra giá tour có hợp lệ không
+      function checkPrice(price) {
+        // Tạo một biểu thức chính quy để kiểm tra giá tour
+        // Giá tour phải là một số nguyên dương có ít nhất 6 chữ số và nhiều nhất 9 chữ số
+        let regex = /^[1-9][0-9]{5,8}$/;
+        // Kiểm tra giá tour có khớp với biểu thức chính quy không
+        let match = price.match(regex);
+        // Nếu có khớp, trả về true
+        if (match) {
+          return true;
+        } else {
+          // Nếu không khớp, trả về false
+          return false;
+        }
       }
 
-      // Hàm để xử lý sự kiện khi nhấn nút đóng modal window
-      function closeModal() {
-        // Ẩn modal window
-        modal.style.display = "none";
-      }
-
-      // Hàm để kiểm tra thời gian có định dạng số ngày số đêm và không >1
+      // Hàm để kiểm tra thời gian có hợp lệ không
       function checkDuration(duration) {
-        // Tạo một biểu thức chính quy để kiểm tra định dạng
-        var regex = /^([1-9][0-9]*) ngày ([1-9][0-9]*) đêm$/;
+        // Tạo một biểu thức chính quy để kiểm tra thời gian
+        // Thời gian phải có dạng x ngày y đêm với x và y là các số nguyên dương và x - y <=1 và y - x <=1
+        let regex = /^([1-9][0-9]*) ngày ([1-9][0-9]*) đêm$/;
         // Kiểm tra thời gian có khớp với biểu thức chính quy không
-        var match = duration.match(regex);
+        let match = duration.match(regex);
         // Nếu có khớp, tiếp tục kiểm tra điều kiện số ngày - số đêm <=1 và số đêm - số ngày <=1
         if (match) {
           // Lấy giá trị của số ngày và số đêm từ kết quả khớp
-          var days = parseInt(match[1]);
-          var nights = parseInt(match[2]);
+          let days = parseInt(match[1]);
+          let nights = parseInt(match[2]);
           // Kiểm tra điều kiện
           if (Math.abs(days - nights) <= 1) {
             // Nếu điều kiện thoả mãn, trả về true
@@ -309,51 +314,207 @@
         }
       }
 
-      // Hàm để xử lý sự kiện khi submit form mở tour mới
-      function submitForm(event) {
-        // Ngăn chặn hành động mặc định của form (gửi dữ liệu và tải lại trang)
-        event.preventDefault();
-        // Lấy giá trị của ô nhập thời gian
-        var duration = tourForm.duration.value;
-        // Kiểm tra thời gian có hợp lệ không
-        if (checkDuration(duration)) {
-          // Nếu hợp lệ, tiếp tục xử lý như bình thường
-          // Tăng số thứ tự của tour lên 1
-          stt++;
-          // Tạo một đối tượng tour từ các giá trị nhập vào form
-          var tour = {
-            stt: stt,
-            code: tourForm.code.value,
-            route: tourForm.route.value,
-            date: tourForm.date.value,
-            duration: duration,
-            price: tourForm.price.value,
-            image: tourForm.image.files[0],
-          };
-          // Tạo một hàng mới cho bảng danh sách tour từ đối tượng tour
-          var row = createRow(tour);
-          // Thêm hàng mới vào phần tử tbody của bảng
-          tourList.tBodies[0].appendChild(row);
-          // Ẩn modal window
-          closeModal();
-          // Xóa các giá trị nhập vào form
-          tourForm.reset();
-        } else {
-          // Nếu không hợp lệ, hiển thị thông báo lỗi cho người dùng
-          alert(
-            "Thời gian không hợp lệ. Vui lòng nhập lại theo định dạng số ngày số đêm và số ngày đêm không cách nhau >1 (4 ngày 3 đêm)"
-          );
+      var codeRegex = /^[A-Z]{3}-[A-Z]{3}-(0?[1-9]|[1][0-2])-[0-9]{4}$/i;
+      var priceRegex = /^[1-9][0-9]{5,8}$/;
+      var durationRegex = /^([1-9][0-9]*) ngày ([1-9][0-9]*) đêm$/;
+
+      code.addEventListener("input", validate);
+      duration.addEventListener("input", validate);
+      price.addEventListener("input", validate);
+
+      function validate(e) {
+        if (e.target.name == "code") {
+          if (codeRegex.test(e.target.value)) {
+            e.target.classList.add("valid");
+            e.target.classList.remove("invalid");
+          } else {
+            e.target.classList.add("invalid");
+            e.target.classList.remove("valid");
+          }
+        }
+
+        if (e.target.name == "duration") {
+          if (durationRegex.test(e.target.value)) {
+            e.target.classList.add("valid");
+            e.target.classList.remove("invalid");
+          } else {
+            e.target.classList.add("invalid");
+            e.target.classList.remove("valid");
+          }
+        }
+
+        if (e.target.name == "price") {
+          if (priceRegex.test(e.target.value)) {
+            e.target.classList.add("valid");
+            e.target.classList.remove("invalid");
+          } else {
+            e.target.classList.add("invalid");
+            e.target.classList.remove("valid");
+          }
         }
       }
 
-      // Thêm sự kiện click cho nút mở tour mới
-      newTourButton.addEventListener("click", openModal);
+      // Hàm để tạo một hàng mới cho bảng danh sách tour
+      function createRow(tour) {
+        // Tạo một phần tử tr để chứa các thông tin của tour
+        let tr = document.createElement("tr");
+        // Tạo một phần tử td để chứa số thứ tự của tour
+        let tdStt = document.createElement("td");
+        // Tăng biến stt lên 1
+        stt++;
+        // Gán nội dung của tdStt bằng giá trị của stt
+        tdStt.textContent = stt;
+        // Thêm tdStt vào tr
+        tr.appendChild(tdStt);
+        // Tạo một phần tử td để chứa mã tour
+        let tdCode = document.createElement("td");
+        // Gán nội dung của tdCode bằng giá trị của tour.code
+        tdCode.textContent = tour.code;
+        // Thêm tdCode vào tr
+        tr.appendChild(tdCode);
+        // Tạo một phần tử td để chứa thời gian
+        let tdRoute = document.createElement("td");
+        // Gán nội dung của tdDuration bằng giá trị của tour.duration
+        tdRoute.textContent = tour.route;
+        // Thêm tdDuration vào tr
+        tr.appendChild(tdRoute);
+        // Tạo một phần tử td để chứa thời gian
+        let tdDate = document.createElement("td");
+        // Gán nội dung của tdDuration bằng giá trị của tour.duration
+        tdDate.textContent = tour.date;
+        // Thêm tdDuration vào tr
+        tr.appendChild(tdDate);
+        // Tạo một phần tử td để chứa thời gian
+        let tdDuration = document.createElement("td");
+        // Gán nội dung của tdDuration bằng giá trị của tour.duration
+        tdDuration.textContent = tour.duration;
+        // Thêm tdDuration vào tr
+        tr.appendChild(tdDuration);
+        // Tạo một phần tử td để chứa giá tour
+        let tdPrice = document.createElement("td");
+        // Gán nội dung của tdPrice bằng giá trị của tour.price
+        tdPrice.textContent = tour.price;
+        // Thêm tdPrice vào tr
+        tr.appendChild(tdPrice);
+        // Tạo một phần tử td để chứa giá tour
+        let tdImage = document.createElement("td");
+        // Tạo một phần tử img cho ảnh đại diện
+        let image = document.createElement("img");
+        // Đọc file ảnh từ đối tượng tour và gán cho src của img
+        let reader = new FileReader();
+        reader.onload = function (e) {
+          image.src = e.target.result;
+          image.setAttribute("width", "100px");
+          // set the width attribute of the image
+          image.setAttribute("height", "100px");
+          // set the height attribute of the image
+        };
 
-      // Thêm sự kiện click cho nút đóng modal window
-      closeButton.addEventListener("click", closeModal);
+        reader.readAsDataURL(tour.image);
+        // Thêm phần tử img vào phần tử td cho ảnh đại diện
+        tdImage.appendChild(image);
+        // Thêm tdPrice vào tr
+        tr.appendChild(tdImage);
 
-      // Thêm sự kiện submit cho form mở tour mới
-      tourForm.addEventListener("submit", submitForm);
+        // Trả về phần tử tr đã tạo
+        return tr;
+      }
+
+      // Hàm để xử lý sự kiện submit cho form nhập tour
+      function handleSubmit(event) {
+        // Ngăn sự kiện mặc định của form khi submit
+        event.preventDefault();
+        // Lấy các giá trị nhập vào từ form
+        let code = tourForm.code.value;
+        let route = tourForm.route.value;
+        let date = tourForm.date.value;
+        let duration = tourForm.duration.value;
+        let price = tourForm.price.value;
+        let image = tourForm.image.files[0];
+
+        // Khai báo biến valid để lưu trữ trạng thái hợp lệ của dữ liệu nhập vào
+        let valid = true;
+        // Khai báo biến messages để push thông báo
+        let messages = [];
+        // Kiểm tra mã tour có hợp lệ không
+        if (!checkCode(code)) {
+          // Nếu không hợp lệ, hiển thị thông báo lỗi cho mã tour
+          messages.push("Mã tour phải có dạng ABC-DEF-12-2020");
+          // Đặt trạng thái hợp lệ là false
+          valid = false;
+        } else {
+          // Nếu hợp lệ, xóa thông báo lỗi cho mã tour
+        }
+        // Kiểm tra thời gian có hợp lệ không
+        if (!checkDuration(duration)) {
+          // Nếu không hợp lệ, hiển thị thông báo lỗi cho thời gian
+          messages.push(
+            "Thời gian phải có dạng x ngày y đêm và x,y cách nhau không quá 1"
+          );
+          // Đặt trạng thái hợp lệ là false
+          valid = false;
+        } else {
+          // Nếu hợp lệ, xóa thông báo lỗi cho mã tour
+        }
+        // Kiểm tra giá tour có hợp lệ không
+        if (!checkPrice(price)) {
+          // Nếu không hợp lệ, hiển thị thông báo lỗi cho giá tour
+          messages.push("Giá tour phải có ít nhất 6 số");
+          // Đặt trạng thái hợp lệ là false
+          valid = false;
+        } else {
+          // Nếu hợp lệ, xóa thông báo lỗi cho mã tour
+        }
+
+        if (messages.length > 0) {
+          error.innerText = messages.join(", ");
+        }
+
+        // Nếu tất cả các dữ liệu nhập vào đều hợp lệ
+        if (valid) {
+          // Tạo một đối tượng tour để lưu trữ các thông tin của tour
+          let tour = {
+            code: code,
+            route: route,
+            date: date,
+            duration: duration,
+            price: price,
+            image: image,
+          };
+          // Tạo một hàng mới cho bảng danh sách tour bằng cách gọi hàm createRow với đối số là đối tượng tour vừa tạo
+          let row = createRow(tour);
+          // Thêm hàng mới vào bảng danh sách tour
+          tourList.appendChild(row);
+          // Hiển thị thông báo thành công
+          successMessage.textContent = "Thêm tour thành công!";
+          // Xóa nội dung của form nhập tour
+          tourForm.reset();
+        }
+      }
+
+      // Hàm để xử lý sự kiện click cho nút mở form nhập tour
+      function handleOpen(event) {
+        // Hiển thị modal chứa form nhập tour
+        modal.style.display = "block";
+      }
+
+      // Hàm để xử lý sự kiện click cho nút đóng form nhập tour
+      function handleClose(event) {
+        // Xóa nội dung của form nhập tour
+        tourForm.reset();
+        // Xóa các thông báo lỗi và thành công nếu có
+        error.innerText = "";
+        successMessage.textContent = "";
+        // Ân modal chứa form nhập tour
+        modal.style.display = "none";
+      }
+
+      // Đăng ký sự kiện submit cho form nhập tour và gọi hàm handleSubmit để xử lý sự kiện
+      tourForm.addEventListener("submit", handleSubmit);
+      // Đăng ký sự kiện click cho nút mở form nhập tour và gọi hàm handleOpen để xử lý sự kiện
+      openButton.addEventListener("click", handleOpen);
+      // Đăng ký sự kiện click cho nút đóng form nhập tour và gọi hàm handleClose để xử lý sự kiện
+      closeButton.addEventListener("click", handleClose);
     </script>
   </body>
 </html>

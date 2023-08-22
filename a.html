@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="buttons">
+        <div class="button" id="open-button">M</div>
+      </div>
+      <table id="tour-list">
+        <thead>
+          <tr>
+            <th>Ả</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="modal" class="modal">
+        <div class="modal-content">
+          <span class="close" id="close-button">×</span>
+          <h2 class="modal-header">R</h2>
+          <form id="tour-form">
+            <div class="form-group">
+              <label for="image">n:</label>
+              <input
+                type="file"
+                id="image"
+                name="image"
+                accept="image/*"
+                required
+              />
+            </div>
+            <div class="form-group"><button type="submit">r</button></div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <script>
+      let tourForm = document.getElementById("tour-form");
+      let tourList = document.getElementById("tour-list");
+      let openButton = document.getElementById("open-button");
+      let modal = document.getElementById("modal");
+      let closeButton = document.getElementById("close-button");
+      let stt = 0;
+      function createRow(tour) {
+        let tr = document.createElement("tr");
+        // create a tr element
+        let tdImage = document.createElement("td");
+        let image = document.createElement("img");
+        // use lowercase for variable names
+        let reader = new FileReader();
+        reader.onload = function (e) {
+          image.src = e.target.result;
+          image.setAttribute("width", "100px");
+          // set the width attribute of the image
+          image.setAttribute("height", "100px");
+          // set the height attribute of the image
+        };
+        reader.readAsDataURL(tour.image);
+        tdImage.appendChild(image);
+        tr.appendChild(tdImage);
+        // append the td element to the tr element
+        return tr;
+        // return the tr element
+      }
+      function handleSubmit(event) {
+        event.preventDefault();
+        // prevent the default behavior of the submit button
+        let image = tourForm.image.files[0];
+        let valid = true;
+        if (valid) {
+          let tour = { image: image };
+          let row = createRow(tour);
+          tourList.appendChild(row);
+          // append the row to the tourList element
+          tourForm.reset();
+        }
+      }
+      modal.style.display = "none";
+      tourForm.addEventListener("submit", handleSubmit);
+      openButton.addEventListener("click", handleOpen);
+      closeButton.addEventListener("click", handleClose);
+    </script>
+  </body>
+</html>
