@@ -146,6 +146,71 @@
       input[type="file"] {
         width: 35%;
       }
+      #snackbar {
+        visibility: hidden;
+        min-width: 250px;
+        margin-left: -125px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 2px;
+        padding: 16px;
+        position: fixed;
+        z-index: 1;
+        left: 50%;
+        bottom: 30px;
+        font-size: 17px;
+      }
+
+      #snackbar.show {
+        visibility: visible;
+        -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        animation: fadein 0.5s, fadeout 0.5s 2.5s;
+      }
+
+      @-webkit-keyframes fadein {
+        from {
+          bottom: 0;
+          opacity: 0;
+        }
+        to {
+          bottom: 30px;
+          opacity: 1;
+        }
+      }
+
+      @keyframes fadein {
+        from {
+          bottom: 0;
+          opacity: 0;
+        }
+        to {
+          bottom: 30px;
+          opacity: 1;
+        }
+      }
+
+      @-webkit-keyframes fadeout {
+        from {
+          bottom: 30px;
+          opacity: 1;
+        }
+        to {
+          bottom: 0;
+          opacity: 0;
+        }
+      }
+
+      @keyframes fadeout {
+        from {
+          bottom: 30px;
+          opacity: 1;
+        }
+        to {
+          bottom: 0;
+          opacity: 0;
+        }
+      }
     </style>
   </head>
   <body>
@@ -185,7 +250,6 @@
                 type="text"
                 id="code"
                 name="code"
-                required
               />
             </div>
             <div class="form-group">
@@ -209,7 +273,6 @@
                 type="text"
                 id="duration"
                 name="duration"
-                required
               />
             </div>
             <div class="form-group">
@@ -220,26 +283,19 @@
                 id="price"
                 name="price"
                 pattern="[1-9][0-9]*"
-                required
               />
             </div>
             <div class="form-group">
               <label for="image">Ảnh đại diện:</label>
-              <input
-                type="file"
-                id="image"
-                name="image"
-                accept="image/*"
-                required
-              />
+              <input type="file" id="image" name="image" accept="image/*" />
             </div>
             <div class="form-group">
               <button type="submit">Thêm tour</button>
-              <div id="success-message" style="color: green"></div>
             </div>
           </form>
         </div>
       </div>
+      <div id="snackbar">Thêm tour thành công!</div>
     </div>
 
     <script>
@@ -250,7 +306,6 @@
       let modal = document.getElementById("modal");
       let closeButton = document.getElementById("close-button");
       let error = document.getElementById("error");
-      let successMessage = document.getElementById("success-message");
 
       // Khai báo biến stt để lưu trữ số thứ tự của tour
       let stt = 0;
@@ -262,14 +317,7 @@
         let regex = /^[A-Z]{3}-[A-Z]{3}-(0?[1-9]|[1][0-2])-[0-9]{4}$/i;
 
         // Kiểm tra mã tour có khớp với biểu thức chính quy không
-        let match = code.match(regex);
-        // Nếu có khớp, trả về true
-        if (match) {
-          return true;
-        } else {
-          // Nếu không khớp, trả về false
-          return false;
-        }
+        return code.match(regex);
       }
 
       // Hàm để kiểm tra giá tour có hợp lệ không
@@ -278,46 +326,29 @@
         // Giá tour phải là một số nguyên dương có ít nhất 6 chữ số và nhiều nhất 9 chữ số
         let regex = /^[1-9][0-9]{5,8}$/;
         // Kiểm tra giá tour có khớp với biểu thức chính quy không
-        let match = price.match(regex);
-        // Nếu có khớp, trả về true
-        if (match) {
-          return true;
-        } else {
-          // Nếu không khớp, trả về false
-          return false;
-        }
+        return price.match(regex);
       }
 
       // Hàm để kiểm tra thời gian có hợp lệ không
       function checkDuration(duration) {
         // Tạo một biểu thức chính quy để kiểm tra thời gian
         // Thời gian phải có dạng x ngày y đêm với x và y là các số nguyên dương và x - y <=1 và y - x <=1
-        let regex = /^([1-9][0-9]*) ngày ([1-9][0-9]*) đêm$/;
+        let regex = /^([1-9][0-9]*)\s+ngày\s+([1-9][0-9]*)\s+đêm\s*$/;
         // Kiểm tra thời gian có khớp với biểu thức chính quy không
         let match = duration.match(regex);
         // Nếu có khớp, tiếp tục kiểm tra điều kiện số ngày - số đêm <=1 và số đêm - số ngày <=1
-        if (match) {
-          // Lấy giá trị của số ngày và số đêm từ kết quả khớp
-          let days = parseInt(match[1]);
-          let nights = parseInt(match[2]);
-          // Kiểm tra điều kiện
-          if (Math.abs(days - nights) <= 1) {
-            // Nếu điều kiện thoả mãn, trả về true
-            return true;
-          } else {
-            // Nếu điều kiện không thoả mãn, trả về false
-            return false;
-          }
-        } else {
-          // Nếu không khớp, trả về false
-          return false;
-        }
+        return (
+          duration.match(regex) &&
+          Math.abs(
+            parseInt(duration.match(regex)[1]) -
+              parseInt(duration.match(regex)[2])
+          ) <= 1
+        );
       }
 
       var codeRegex = /^[A-Z]{3}-[A-Z]{3}-(0?[1-9]|[1][0-2])-[0-9]{4}$/i;
       var priceRegex = /^[1-9][0-9]{5,8}$/;
-      var durationRegex = /^([1-9][0-9]*) ngày ([1-9][0-9]*) đêm$/;
-
+      var durationRegex = /^([1-9][0-9]*)\s+ngày\s+([1-9][0-9]*)\s+đêm\s*$/;
       code.addEventListener("input", validate);
       duration.addEventListener("input", validate);
       price.addEventListener("input", validate);
@@ -485,10 +516,15 @@
           let row = createRow(tour);
           // Thêm hàng mới vào bảng danh sách tour
           tourList.appendChild(row);
-          // Hiển thị thông báo thành công
-          successMessage.textContent = "Thêm tour thành công!";
           // Xóa nội dung của form nhập tour
           tourForm.reset();
+          // Ân modal chứa form nhập tour
+          modal.style.display = "none";
+          // Thêm snackbar thông báo thành công
+          snackbar.className = "show";
+          setTimeout(function () {
+            snackbar.className = snackbar.className.replace("show", "");
+          }, 3000);
         }
       }
 
@@ -504,7 +540,6 @@
         tourForm.reset();
         // Xóa các thông báo lỗi và thành công nếu có
         error.innerText = "";
-        successMessage.textContent = "";
         // Ân modal chứa form nhập tour
         modal.style.display = "none";
       }
